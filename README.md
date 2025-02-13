@@ -3,7 +3,7 @@
 This script allows you to analyze a list of IP addresses using the **AbuseIPDB** API. It generates reports in CSV and HTML formats and displays a detailed summary in the console with a well-formatted and color-highlighted table. It is particularly useful for **handling security incidents** when there are many IPs to investigate.
 
 <p align="center">
-<img width=1303 height=300 src=https://imgur.com/k8SFEcn.png">
+<img src=https://imgur.com/k8SFEcn.png">
 </p>
 
 
