@@ -65,7 +65,7 @@ Adjust `max_workers` according to your system's capability and the number of IPs
 A visual report is generated with color coding to indicate the risk level of each IP.
 
 <p align="center">
-<img width=1303 height=410 src=https://imgur.com/kAzGLMl.png>
+<img src=https://imgur.com/kAzGLMl.png>
 </p>
 
 
