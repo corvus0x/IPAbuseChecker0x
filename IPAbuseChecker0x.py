@@ -4,9 +4,17 @@ import concurrent.futures
 from tqdm import tqdm
 from tabulate import tabulate
 from colorama import Fore, Style
+import pycountry
+import sys
+from datetime import datetime
 
 # Define the AbuseIPDB API key
 API_KEY = 'YOUR_API_KEY'
+
+# Check if API_KEY is set
+if API_KEY == "YOUR_API_KEY":
+    print(f"{Fore.RED}Error: Please insert your AbuseIPDB API Key in the API_KEY variable.{Style.RESET_ALL}")
+    sys.exit(1)
 
 # Base API URL
 API_URL = 'https://api.abuseipdb.com/api/v2/check'
@@ -18,8 +26,7 @@ def print_logo():
    /  _/ __ \   /   |  / /_  __  __________     / ____/ /_  ___  _____/ /_____  _____   / __ \_  __
    / // /_/ /  / /| | / __ \/ / / / ___/ _ \   / /   / __ \/ _ \/ ___/ //_/ _ \/ ___/  / / / / |/_/
  _/ // ____/  / ___ |/ /_/ / /_/ (__  )  __/  / /___/ / / /  __/ /__/ ,< /  __/ /     / /_/ />  <  
-/___/_/      /_/  |_/_.___/\__,_/____/\___/   \____/_/ /_/\___/\___/_/|_|\___/_/      \____/_/|_|         
-
+/___/_/      /_/  |_/_.___/\__,_/____/\___/   \____/_/ /_/\___/\___/_/|_|\___/_/      \____/_/|_|                                                                                                                                                                                                                                                            
     by corvus0x
     """
     print(Fore.CYAN + logo + Style.RESET_ALL)
@@ -50,16 +57,19 @@ def get_ip_info(ip):
 def process_ip(ip):
     ip_info = get_ip_info(ip)
     if ip_info:
+        country_name = pycountry.countries.get(alpha_2=ip_info['countryCode']).name if ip_info['countryCode'] else 'Unknown'
+        last_reported = ip_info['lastReportedAt']
+        formatted_date = datetime.strptime(last_reported, "%Y-%m-%dT%H:%M:%S%z").strftime("%d-%b-%Y %H:%M UTC") if last_reported else 'No reports'
         return [
             ip_info['ipAddress'],
             ip_info['abuseConfidenceScore'],
             ip_info['isp'],
             ip_info['domain'],
-            ip_info['countryCode'],
+            country_name,
             ip_info['totalReports'],
             ip_info.get('isWhitelisted', 'N/A'),
             ip_info.get('isTor', 'N/A'),
-            ip_info['lastReportedAt']
+            formatted_date
         ]
     return None
 
@@ -71,26 +81,65 @@ def generate_html_report(results, summary, output_html):
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>AbuseIPDB Report</title>
+        <title>IPAbuseChecker0x Report</title>
         <style>
-            body {{ font-family: Arial, sans-serif; margin: 20px; }}
-            table {{ width: 100%; border-collapse: collapse; margin-top: 20px; }}
-            th, td {{ padding: 10px; border: 1px solid #333; text-align: center; }}
-            th {{ background-color: #333; color: white; }}
-            .high-risk {{ background-color: #ff4d4d; color: white; }}
-            .medium-risk {{ background-color: #ffcc00; color: black; }}
-            .low-risk {{ background-color: #66cc66; color: white; }}
+            body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f9; color: #333; }}
+            h1 {{
+                color: #444;
+                text-align: center;
+                margin-top: 20px;
+                font-size: 48px;
+                font-weight: 900;
+            }}
+            h1::after {{
+                content: '';
+                display: block;
+                width: 50px;
+                margin: 10px auto;
+                border-bottom: 3px solid #444;
+            }}
+            h2 {{ color: #333; margin-top: 30px; font-size: 24px; padding: 10px; }}
+            .info-section, .tor-section, .non-tor-section {{
+                width: 90%;
+                margin: 30px auto;
+                padding: 20px;
+                border-radius: 8px;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+                background-color: white;
+            }}
+            .info-section {{
+                background-color: #f8f9fa;
+                border-left: 5px solid #007bff;
+            }}
+            .tor-section {{
+                border-left: 5px solid #dc3545;
+            }}
+            .non-tor-section {{
+                border-left: 5px solid #28a745;
+            }}
+            table {{ width: 100%; border-collapse: collapse; margin-top: 20px; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); }}
+            th, td {{ border: 1px solid #ddd; padding: 12px; text-align: center; }}
+            th {{ background-color: #000; color: #fff; font-size: 18px; }}
+            td {{ font-size: 16px; color: #444; }}
+            .high-risk {{ background-color: #ffdddd; color: black; }}
+            .medium-risk {{ background-color: #fff5cc; color: black; }}
+            .low-risk {{ background-color: #ddffdd; color: black; }}
             .tor {{ font-weight: bold; }}
+            .highlight {{ background-color: #ffff99; }}
         </style>
     </head>
     <body>
-        <h1>AbuseIPDB Report</h1>
-        <h2>Summary</h2>
-        <p>Total IPs Analyzed: {summary['total']}</p>
-        <p>🔴 High Risk IPs (>40 confidence): {summary['high_risk']}</p>
-        <p>🟠 Medium Risk IPs (1-39 confidence): {summary['medium_risk']}</p>
-        <p>🟢 Informational (0 confidence): {summary['low_risk']}</p>
-        <p>TOR Nodes: {summary['tor']}</p>
+        <h1>IPAbuseChecker0x Report</h1>
+
+        <div class="info-section">
+            <h2>Report Overview</h2>
+            <p><strong>Total IPs Analyzed:</strong> {summary['total']}</p>
+            <p><strong>🔴 High Risk IPs (>40 confidence):</strong> {summary['high_risk']}</p>
+            <p><strong>🟠 Medium Risk IPs (1-39 confidence):</strong> {summary['medium_risk']}</p>
+            <p><strong>🟢 Informational (0 confidence):</strong> {summary['low_risk']}</p>
+            {"<p class='highlight'><strong>TOR Nodes:</strong> " + str(summary['tor']) + "</p>" if summary['tor'] > 0 else "<p><strong>TOR Nodes:</strong> " + str(summary['tor']) + "</p>"}
+        </div>
+
         <table>
             <tr>
                 <th>IP Address</th>
@@ -104,6 +153,9 @@ def generate_html_report(results, summary, output_html):
                 <th>Last Reported</th>
             </tr>
     """
+
+    # Sort results to have TOR nodes first, then by Abuse Confidence in descending order
+    results.sort(key=lambda x: (not x[7], -x[1]))
 
     for row in results:
         risk_class = "high-risk" if row[1] > 40 else "medium-risk" if row[1] > 0 else "low-risk"
@@ -169,7 +221,7 @@ def process_ips(input_file, output_csv, output_html):
     print(f"\nTotal analyzed IPs: {summary['total']}")
 
     # Final message
-    print(f"\n{Fore.GREEN}Report saved in {output_html} and Data saved in {output_csv}{Style.RESET_ALL}")
+    print(f"\n{Fore.GREEN}Report saved in {Fore.LIGHTYELLOW_EX}{output_html}{Fore.GREEN} and Data saved in {Fore.LIGHTYELLOW_EX}{output_csv}{Style.RESET_ALL}")
 
 # Execute processing
-process_ips('ips.txt', 'resultsABIP.csv', 'report.html')
+process_ips('ips.txt', 'results_IPAbuseChecker0x.csv', 'report_IPAbuseChecker0x.html')
